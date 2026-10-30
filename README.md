@@ -10,7 +10,7 @@ Unlike platforms focused mainly on long-term groups, followers, or dating, SideQ
 
 People often want to try something or make plans but don't have enough friends available, don't know who else is interested, or struggle to discover spontaneous local activities.
 
-## How It Works#
+## How It Works
 
 1. **Discover** activities nearby or by interest.
 2. **Create or join** a quest with a time, place, budget, and available spots.
@@ -19,6 +19,55 @@ People often want to try something or make plans but don't have enough friends a
 5. **Look back** on experiences and discover what to try next.
 
 Quests are activity-based and time-bound, keeping the focus on doing things in real life—not endlessly scrolling through a social feed.
+
+## Phase 1 prototype
+
+The current prototype is a mock-backed cross-platform experience. Web and
+mobile share the `@sidequest/shared` domain/repository package and the
+`@sidequest/ui` design system.
+
+Implemented flows include:
+
+- Discover, search, category filters, quest details, and capacity visibility.
+- Create, join, request-to-join, leave, complete, cancel, and recap workflows.
+- Host approval/rejection of join requests.
+- Local activity coordination with participant status and mock group chat.
+- Report and block actions.
+- Editable profile details, quest history, theme preferences, notification
+  preferences, blocked-user management, and mock report history.
+- Loading, empty, error, retry, and feedback states.
+
+Authentication, persistence, real notifications, realtime messaging, and
+Supabase integration are intentionally postponed until the prototype review.
+
+## Setup
+
+Requirements: Node.js 22+ and npm.
+
+```bash
+npm install
+npm run qa
+```
+
+Run the applications locally:
+
+```bash
+npm run dev:web
+npm run dev:mobile
+```
+
+Useful focused checks:
+
+```bash
+npm run test:shared
+npm run typecheck:web
+npm run typecheck:mobile
+npm run lint:web
+npm run build:web
+```
+
+The mobile app can also be opened with Expo using its `android`, `ios`, or
+`web` workspace scripts.
 
 ## Features to Explore
 

@@ -1,0 +1,25 @@
+{
+  "name": "@sidequest/ui",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./web": "./src/web.tsx",
+    "./native": "./src/native.tsx",
+    "./showcase": "./src/showcase.tsx",
+    "./quest-card": "./src/quest-card.tsx",
+    "./quest-card-native": "./src/quest-card.native.tsx",
+    "./quest-card-types": "./src/quest-card-types.ts"
+  },
+  "peerDependencies": {
+    "react": "19.3.0",
+    "react-native": "0.88.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.3.0",
+    "react": "19.3.0",
+    "react-native": "0.88.0"
+  }
+}
