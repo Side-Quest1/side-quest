@@ -1,5 +1,4 @@
 "use client";
-
 import { useMemo, useState } from "react";
 import {
   CURRENT_USER_ID,
@@ -30,7 +29,23 @@ import {
 import { QuestCard, type QuestCardData } from "@sidequest/ui/quest-card";
 
 const repository = new MockQuestRepository();
+function imageForCategory(category: string): string {
+  const images: Record<string, string> = {
+    sports: "https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=900&q=80",
+    food: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=900&q=80",
+    adventure: "https://images.unsplash.com/photo-1551632811-561732d1e306?auto=format&fit=crop&w=900&q=80",
+    fitness: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=900&q=80",
+    travel: "https://images.unsplash.com/photo-146951ಾಧ?auto=format&fit=crop&w=900&q=80",
+    gaming: "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=900&q=80",
+    study: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=900&q=80",
+    music: "https://images.unsplash.com/photo-151 concerts?auto=format&fit=crop&w=900&q=80",
+    photography: "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?auto=format&fit=crop&w=900&q=80",
+    movies: "https://images.unsplash.com/photo-1489599849927-2ee91 の?auto=format&fit=crop&w=900&q=80",
+    social: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=900&q=80",
+  };
 
+  return images[category.toLowerCase()] ?? images.social;
+}
 function toCardData(quest: SideQuest): QuestCardData {
   return {
     title: quest.title,
@@ -317,6 +332,7 @@ export default function Home() {
                   <QuestCard
                     quest={toCardData(quest)}
                     hostName={profileName(quest.hostId)}
+                    imageUrl={imageForCategory(quest.category)}
                     action={() => void runMembershipAction(quest)}
                     actionLabel={actionForQuest(quest, participants.find((item) => item.questId === quest.id && item.userId === CURRENT_USER_ID)).label}
                     actionDisabled={actionForQuest(quest, participants.find((item) => item.questId === quest.id && item.userId === CURRENT_USER_ID)).disabled}
@@ -336,7 +352,8 @@ export default function Home() {
                 const action = actionForQuest(quest, participants.find((item) => item.questId === quest.id && item.userId === CURRENT_USER_ID));
                 return (
                   <div key={quest.id} onClick={() => setSelectedQuestId(quest.id)} role="button" tabIndex={0} onKeyDown={(event) => event.key === "Enter" && setSelectedQuestId(quest.id)}>
-                    <QuestCard quest={toCardData(quest)} hostName={profileName(quest.hostId)} action={() => void runMembershipAction(quest)} actionLabel={action.label} actionDisabled={action.disabled} />
+                    <QuestCard quest={toCardData(quest)} hostName={profileName(quest.hostId)}
+                    imageUrl={imageForCategory(quest.category)} action={() => void runMembershipAction(quest)} actionLabel={action.label} actionDisabled={action.disabled} />
                   </div>
                 );
               })}
@@ -421,7 +438,7 @@ export default function Home() {
       {showCreate && (
         <div className="fixed inset-0 z-20 flex items-end justify-center bg-[#172b25]/40 p-4 sm:items-center">
           <Card style={{ maxHeight: "90vh", maxWidth: 560, overflowY: "auto", width: "100%" }}>
-            <div className="flex items-center justify-between"><h2 className="text-2xl font-semibold text-[#172b25]">Create a quest</h2><button aria-label="Close create quest" className="text-2xl text-[#68756d]" onClick={() => setShowCreate(false)}>×</button></div>
+            <div className="flex items-center justify-between"><h2 className="text-2xl font-semibold text-[#172b25]">Create a quest</h2><button aria-label="whitespace-nowrap" className="text-2xl text-[#68756d]" onClick={() => setShowCreate(false)}>×</button></div>
             <div className="mt-5 grid gap-3">
               <Input aria-label="Quest title" placeholder="Quest title" value={createTitle} onChange={(event) => setCreateTitle(event.target.value)} />
               <textarea aria-label="Quest description" placeholder="What are you planning?" value={createDescription} onChange={(event) => setCreateDescription(event.target.value)} className="min-h-28 rounded-[10px] border border-[#dce1d6] p-3 text-[#172b25]" />
@@ -453,3 +470,5 @@ export default function Home() {
     </div>
   );
 }
+
+
