@@ -54,16 +54,17 @@ export function QuestCard({
         flexDirection: "column",
         height: "100%",
         borderRadius: 20,
-        border: "1px solid #E1E6DC",
-        background: "#FFFFFF",
+        border: "1px solid var(--border)",
+        background: "var(--surface)",
       }}
+      className="quest-card-interactive"
     >
       {imageUrl ? (
         <div
           style={{
             position: "relative",
             height: 200,
-            background: "#E8EBDD",
+            background: "var(--surface-secondary)",
           }}
         >
           <img
@@ -88,7 +89,7 @@ export function QuestCard({
         <div
           style={{
             height: 8,
-            background: "#C8F169",
+            background: "var(--accent)",
           }}
         />
       )}
@@ -118,7 +119,7 @@ export function QuestCard({
         <div>
           <h3
             style={{
-              color: "#172B25",
+              color: "var(--text-primary)",
               fontSize: 20,
               lineHeight: 1.3,
               margin: 0,
@@ -128,7 +129,7 @@ export function QuestCard({
           </h3>
           <p
             style={{
-              color: "#68756D",
+              color: "var(--text-secondary)",
               lineHeight: 1.6,
               margin: "8px 0 0",
               display: "-webkit-box",
@@ -143,15 +144,15 @@ export function QuestCard({
 
         <div
           style={{
-            color: "#68756D",
+            color: "var(--text-secondary)",
             display: "grid",
             gap: 10,
             fontSize: 13,
           }}
         >
-          <span>📅 {quest.date} · {quest.startTime}</span>
-          <span>📍 {quest.locationLabel}{quest.approximateDistance ? ` · ${quest.approximateDistance}` : ""}</span>
-          <span>💰 {cost}</span>
+          <span><strong style={{ color: "var(--text-primary)" }}>When</strong> {quest.date} · {quest.startTime}</span>
+          <span><strong style={{ color: "var(--text-primary)" }}>Where</strong> {quest.locationLabel}{quest.approximateDistance ? ` · ${quest.approximateDistance}` : ""}</span>
+          <span><strong style={{ color: "var(--text-primary)" }}>Cost</strong> {cost}</span>
         </div>
 
         <div
@@ -161,7 +162,7 @@ export function QuestCard({
             gap: 10,
             marginTop: "auto",
             paddingTop: 12,
-            borderTop: "1px solid #E8EBE3",
+            borderTop: "1px solid var(--divider)",
           }}
         >
           <div
@@ -170,8 +171,8 @@ export function QuestCard({
               width: 34,
               height: 34,
               borderRadius: "50%",
-              background: "#E8EBDD",
-              color: "#172B25",
+              background: "var(--surface-secondary)",
+              color: "var(--text-primary)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -181,8 +182,8 @@ export function QuestCard({
           >
             {hostName.trim().charAt(0).toUpperCase() || "H"}
           </div>
-          <span style={{ color: "#68756D", fontSize: 13 }}>
-            Hosted by <strong style={{ color: "#172B25" }}>{hostName}</strong>
+          <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>
+            Hosted by <strong style={{ color: "var(--text-primary)" }}>{hostName}</strong>
           </span>
         </div>
 

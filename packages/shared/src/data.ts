@@ -7,7 +7,10 @@ export const mockProfiles: ReadonlyArray<UserProfile> = [
   { id: "user-nisha", displayName: "Nisha Rao", username: "nishar", bio: "Photography, music, and long walks.", city: "Bengaluru", ageEligibility: true, hostedQuestCount: 6, joinedQuestCount: 10, completedQuestCount: 8 },
 ];
 
-const quest = (value: SideQuest): SideQuest => value;
+const quest = (value: Omit<SideQuest, "activityType"> & Partial<Pick<SideQuest, "activityType">>): SideQuest => ({
+  ...value,
+  activityType: value.activityType ?? "social",
+});
 
 export const mockQuests: SideQuest[] = [
   quest({ id: "quest-football", title: "Five-a-side under the lights", description: "A relaxed football game for mixed experience levels.", category: "sports", hostId: "user-maya", date: "2026-11-06", startTime: "20:30", endTime: "22:00", locationLabel: "Indiranagar Sports Arena", approximateDistance: "4 km away", capacity: 10, participantIds: ["user-maya", "user-me"], estimatedCost: { amount: 180, currency: "INR" }, visibility: "public", joinMode: "instant", minimumAge: 16, status: "open", featured: true, createdAt: "2026-10-28T10:00:00+05:30" }),

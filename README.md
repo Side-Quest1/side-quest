@@ -26,9 +26,27 @@ The current prototype is a mock-backed cross-platform experience. Web and
 mobile share the `@sidequest/shared` domain/repository package and the
 `@sidequest/ui` design system.
 
+The current frontend redesign keeps the same mock-backed workflows while
+using the Forest & Lime visual system, Manrope headings, Inter body text,
+responsive Discover composition, motion-safe card transitions, and valid
+activity photography.
+
 Implemented flows include:
 
 - Discover, search, category filters, quest details, and capacity visibility.
+- Full activity creation on web and mobile with shared category/activity-type
+  configuration, schedule, location, capacity, optional cost, join mode, and
+  visibility validation. Team-sport activities also collect players per team.
+- My Activities groupings for hosting, joined, pending requests, and past
+  activities, with activity details navigation and mock-backed host approval,
+  rejection, completion, cancellation, and participant leave actions.
+- Mobile uses a persistent five-item bottom navigation for Discover, My
+  Activities, Create, Alerts, and Profile. The centered Create action opens the
+  real activity form; modal flows temporarily hide the bar to avoid overlap.
+- Light, dark, and system themes now use semantic shared UI tokens. Web theme
+  preference is persisted in local storage and follows browser appearance in
+  system mode; native primitives resolve the selected/system appearance without
+  resetting screen state.
 - Create, join, request-to-join, leave, complete, cancel, and recap workflows.
 - Host approval/rejection of join requests.
 - Local activity coordination with participant status and mock group chat.
@@ -36,9 +54,22 @@ Implemented flows include:
 - Editable profile details, quest history, theme preferences, notification
   preferences, blocked-user management, and mock report history.
 - Loading, empty, error, retry, and feedback states.
+- Discover pagination, combined category/search/budget filtering, filter reset,
+  and activity details status/capacity information on web and mobile.
+
+The repository contract now also exposes typed, cursor-based quest pages for
+future backend pagination. The current `MockQuestRepository` is explicitly a
+development adapter: data is process-local, resets on restart, and does not
+represent persistence or delivery guarantees.
+The Stage 3 activity groups and management operations use that same process-local
+adapter; they do not imply authentication, durable storage, or server-side
+concurrency guarantees.
 
 Authentication, persistence, real notifications, realtime messaging, and
-Supabase integration are intentionally postponed until the prototype review.
+Supabase integration are intentionally postponed. The next backend step is to
+implement `QuestRepository` with Supabase queries, map database errors to
+typed application errors, and add realtime subscriptions at the application
+adapter boundary without changing screen contracts.
 
 ## Setup
 

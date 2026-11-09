@@ -2,6 +2,15 @@ export type QuestStatus = "open" | "full" | "completed" | "cancelled" | "expired
 export type SideQuestStatus = QuestStatus;
 export type JoinMode = "instant" | "approval";
 export type Visibility = "public" | "unlisted" | "invite-only";
+export type QuestActivityType =
+  | "team-sport"
+  | "individual-sport"
+  | "outdoor"
+  | "food"
+  | "creative"
+  | "gaming"
+  | "study"
+  | "social";
 export type QuestCategory =
   | "sports" | "food" | "adventure" | "fitness" | "travel" | "gaming"
   | "study" | "music" | "photography" | "movies" | "social" | "other";
@@ -25,6 +34,11 @@ export type SideQuest = {
   title: string;
   description: string;
   category: QuestCategory;
+  activityType: QuestActivityType;
+  activityDetails?: {
+    teamSize?: number;
+    skillLevel?: "beginner" | "intermediate" | "advanced" | "all-levels";
+  };
   hostId: string;
   date: string;
   startTime: string;
@@ -57,6 +71,23 @@ export type QuestFilter = {
   status?: QuestStatus;
   search?: string;
   featured?: boolean;
+};
+
+export type QuestPageInput = QuestFilter & {
+  limit?: number;
+  cursor?: string;
+};
+
+export type QuestPage = {
+  items: SideQuest[];
+  nextCursor?: string;
+};
+
+export type MyActivityGroups = {
+  hosting: SideQuest[];
+  joined: SideQuest[];
+  pending: Array<{ quest: SideQuest; participant: QuestParticipant }>;
+  past: SideQuest[];
 };
 
 export type QuestCreationInput = Omit<

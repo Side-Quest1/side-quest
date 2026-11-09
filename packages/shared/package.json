@@ -8,12 +8,6 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "test": "tsx --test test/repository.test.ts"
-  },
-  "devDependencies": {
-    "tsx": "^4.20.6"
-  },
-  "devDependencies": {
-    "tsx": "^4.23.15"
+    "test": "tsx --test test/*.test.ts"
   }
 }

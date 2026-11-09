@@ -4,6 +4,142 @@ Record a timestamped entry here after every repository change. Use the local
 date and time with the UTC offset, and briefly describe the files or behavior
 affected.
 
+## 2026-11-09 13:18:15 +05:30
+
+### Completed mobile full-page navigation and final frontend polish
+
+- Replaced the mobile popup presentation for Activity Details, Create Activity,
+  My Activities, Profile/Settings, and Coordination with opaque, full-viewport
+  navigation surfaces. Existing state, repository actions, theme updates, and
+  Android back handling remain in place.
+- Added consistent Back controls for secondary screens and kept the five-item
+  bottom navigation limited to the main Discover, My Activities, Create,
+  Alerts, and Profile destinations.
+- Preserved the prominent Quest Lime Create action with explicit Deep Forest
+  icon and label contrast, including pressed-state opacity and weight.
+- Corrected selected non-Create navigation foreground colors and applied active
+  theme text colors to participant and activity rows.
+- Completed the mobile semantic theme audit: dark surfaces use near-black,
+  primary, and elevated hierarchy tokens; screen backgrounds, inputs, cards,
+  dialogs, status areas, and nested content follow the active Light, Dark, or
+  System theme.
+- Added responsive web theme handling, persisted/system theme resolution,
+  reduced-motion behavior, and slim rounded theme-aware scrollbars without
+  disabling native or nested scrolling.
+- Updated shared activity validation, repository operations, mock data,
+  activity grouping, host management, participant management, and tests for
+  creation, capacity, approvals, cancellation, completion, leaving, and
+  grouping.
+- Updated README and architecture documentation with the Stage 3 scope,
+  navigation model, theme architecture, scrollbar behavior, validation
+  commands, and known mock-only limitations.
+- Verification completed: `npm run qa`, 14/14 shared tests, all TypeScript
+  checks, web lint, web production build, Android Expo export, mobile
+  typecheck, `git diff --check`, and HTTP 200 checks for the running web
+  server at `http://localhost:3000` and Expo Metro at `http://localhost:8083`.
+- Physical-device or simulator visual testing remains unavailable. The mobile
+  implementation was validated through source inspection, TypeScript checks,
+  and Android bundle export; no Supabase, authentication, or backend
+  persistence was added.
+
+## 2026-11-09 10:41:03 +05:30
+
+### Completed Stage 3 activity creation and My Activities pass
+
+- Added shared activity-type definitions, team-sport details, schedule and
+  capacity validation, duplicate pending-request protection, and the typed
+  `getMyActivities` repository operation.
+- Expanded web and mobile creation forms with field validation, loading and
+  retry/error states, optional cost, join mode, visibility, schedule,
+  location, capacity, and type-specific team size.
+- Added active hosting, joined, pending, and past activity groupings with
+  details navigation, host approval/rejection, full-capacity safeguards,
+  cancellation, completion, and participant leave actions.
+- Added shared tests for creation validation, grouping, duplicate requests,
+  capacity-safe approval, and host permissions.
+- The implementation remains process-local mock behavior; no authentication,
+  persistence, Supabase integration, or backend concurrency guarantees were
+  added.
+- Added the persistent mobile five-item bottom navigation with Discover, My
+  Activities, Create, Alerts, and Profile destinations. The bar uses Forest,
+  Ivory, and Lime styling, enlarged center Create affordance, labeled
+  touch targets, content bottom padding, and modal-aware visibility.
+- Reworked shared semantic color tokens for light and dark themes, added web
+  CSS-variable theme application with persisted/system preference handling, and
+  added a native theme provider for themed inputs, buttons, cards, badges,
+  activity cards, and status-bar styling. Dark-mode selectors also cover the
+  existing web composition classes so text remains visible during transitions.
+
+## 2026-11-04 13:28:17 +05:30
+
+### Completed Stage 2 Discover and details pass
+
+- Wired web Discover to the typed cursor-based repository page contract with
+  initial loading, load-more state, retry behavior, and combined category,
+  search, and budget filters.
+- Added filter reset and a meaningful budget-aware “I’m free” reset flow.
+- Wired mobile Discover to the same paged repository contract with refresh,
+  load-more, combined filters, and native touch-friendly filter controls.
+- Expanded web and mobile activity details with lifecycle status, join mode,
+  visibility, capacity, schedule, location, host, and participant information.
+- Added shared coverage for combined page filters and cancelled/expired
+  membership restrictions.
+- Preserved the existing mock adapter, user changes, app configuration, and
+  Supabase boundary; no backend work or credentials were added.
+
+## 2026-11-04 12:33:30 +05:30
+
+### Completed workflow readiness pass
+
+- Added typed cursor-based quest pagination and filtering to the shared
+  `QuestRepository` contract and mock adapter.
+- Added coverage for paged search results and continuation cursors.
+- Made pending requests cancellable and joined quests leavable from web and
+  mobile membership actions, including full-quest cases.
+- Added duplicate-submit guards for membership actions.
+- Made the web and mobile “I’m free” controls clear active discovery filters
+  instead of acting as decorative controls.
+- Added selected-state accessibility metadata to category controls and dialog
+  semantics to the web quest details surface.
+- Updated the root shared test script so `npm run qa` uses the repository’s
+  installed `tsx` runner without changing the existing shared package work.
+- Documented the development adapter limits and future Supabase adapter
+  boundary. No credentials, migrations, or backend implementation added.
+- Verified the Expo Android bundle with `expo export --platform android`.
+- Expo web export remains unavailable because the mobile workspace does not
+  install React Native Web dependencies; this does not affect native Android
+  bundling or the existing mobile typecheck.
+
+## 2026-11-04 12:08:48 +05:30
+
+### Started frontend redesign foundation
+
+- Created the `feature/frontend-redesign` branch without changing the existing
+  mock-backed workflows.
+- Refined web typography to use Manrope for headings and Inter for body text.
+- Aligned web global tokens and selection styling with the Forest & Lime brand.
+- Added reduced-motion-safe entrance and quest-card interaction transitions.
+- Added loading semantics to the shared web Button primitive.
+- Replaced invalid travel, music, and movie Unsplash mappings with valid image
+  URLs.
+- Removed emoji metadata from the shared web QuestCard in favor of accessible
+  text labels.
+- Updated README and architecture notes to document the redesign foundation.
+
+## 2026-10-30 14:22:32 +05:30
+
+### Logged remaining Phase 1 review status
+
+- Recorded the remaining manual-review limitation: native Expo device or
+  simulator validation still requires an environment with the Expo CLI and a
+  device or simulator.
+- Confirmed no additional application changes were made after the web smoke
+  test and responsive modal fix.
+- Browser pages were not shared in the current session, so no additional
+  browser review was performed.
+- Supabase remains postponed, and all repository changes remain uncommitted
+  and unpushed.
+
 ## 2026-10-30 14:00:45 +05:30
 
 ### Completed Phase 1 review smoke test

@@ -15,7 +15,7 @@
     "typecheck:mobile": "tsc --noEmit -p apps/mobile/tsconfig.json",
     "lint:web": "npm run lint --workspace=apps/web",
     "build:web": "npm run build --workspace=apps/web",
-    "test:shared": "npm test --workspace=@sidequest/shared",
+    "test:shared": "npx --no-install tsx --test packages/shared/test/repository.test.ts",
     "qa": "npm run test:shared && npm run typecheck:shared && npm run typecheck:ui && npm run typecheck:web && npm run typecheck:mobile && npm run lint:web && npm run build:web"
   }
 }
