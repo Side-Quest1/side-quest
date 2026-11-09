@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Badge, Button, Card } from "./native";
+import { Badge, Button, Card, useTheme } from "./native";
 import { colors, spacing, themes } from "./index";
 import type { QuestCardData } from "./quest-card-types";
 
@@ -20,6 +20,7 @@ export function QuestCard({
   actionDisabled?: boolean;
   onPress?: () => void;
 }) {
+  const { theme } = useTheme();
   const spots = Math.max(quest.capacity - quest.participantCount, 0);
   const cost = quest.estimatedCost
     ? `${quest.estimatedCost.currency} ${quest.estimatedCost.amount}`
@@ -38,15 +39,15 @@ export function QuestCard({
             {quest.status === "open" ? `${spots} spots left` : quest.status}
           </Badge>
         </View>
-        <Text style={styles.title}>{quest.title}</Text>
-        <Text style={styles.description}>{quest.description}</Text>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{quest.title}</Text>
+        <Text style={[styles.description, { color: theme.textSecondary }]}>{quest.description}</Text>
         <View style={styles.metadata}>
-          <Text style={styles.metaText}>{quest.date} · {quest.startTime}</Text>
-          <Text style={styles.metaText}>
+          <Text style={[styles.metaText, { color: theme.textSecondary }]}>{quest.date} · {quest.startTime}</Text>
+          <Text style={[styles.metaText, { color: theme.textSecondary }]}>
             {quest.locationLabel}
             {quest.approximateDistance ? ` · ${quest.approximateDistance}` : ""}
           </Text>
-          <Text style={styles.metaText}>{cost} · Hosted by {hostName}</Text>
+          <Text style={[styles.metaText, { color: theme.textSecondary }]}>{cost} · Hosted by {hostName}</Text>
         </View>
       </Pressable>
       {action && actionLabel && (
@@ -65,7 +66,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   title: {
-    color: themes.light.text,
+    color: themes.light.textPrimary,
     fontSize: 19,
     fontWeight: "700",
   },
@@ -83,7 +84,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
   },
   metaText: {
-    color: colors.slate,
+    color: themes.light.textSecondary,
     fontSize: 12,
   },
 });

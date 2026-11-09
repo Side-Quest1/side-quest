@@ -9,6 +9,8 @@ const makeQuest = (overrides: Partial<SideQuest> = {}): SideQuest => ({
   title: "Test quest",
   description: "A test activity",
   category: "social",
+  activityType: "social",
+  activityType: "social",
   hostId: "host",
   date: "2026-11-20",
   startTime: "10:00",
@@ -115,6 +117,7 @@ test("profile, settings, blocked users, and report history remain locally editab
     theme: "dark",
     notifications: { chatMessages: false, questUpdates: true, reminders: false },
   });
+
   assert.equal(settings.theme, "dark");
   assert.equal(settings.notifications.chatMessages, false);
   await repository.blockUser("user-me", "member");
@@ -123,6 +126,45 @@ test("profile, settings, blocked users, and report history remain locally editab
   assert.equal((await repository.getBlockedUsers("user-me")).length, 0);
   await repository.reportUser({ reportedUserId: "member", reason: "Test report" }, "user-me");
   assert.equal((await repository.getReports("user-me"))[0]?.status, "submitted");
+});
+
+test("quest pages apply filters and return a continuation cursor", async () => {
+  const repository = new MockQuestRepository([
+    makeQuest({ id: "one", title: "Morning football", featured: true }),
+    makeQuest({ id: "two", title: "Evening football", featured: false }),
+  ]);
+
+  const firstPage = await repository.getQuestPage({ search: "football", limit: 1 });
+  assert.equal(firstPage.items.length, 1);
+  assert.equal(firstPage.nextCursor, "1");
+  const secondPage = await repository.getQuestPage({
+    search: "football",
+    limit: 1,
+    cursor: firstPage.nextCursor,
+  });
+  assert.equal(secondPage.items[0]?.id, "two");
+});
+
+test("quest pages combine category, cost, and search filters", async () => {
+  const repository = new MockQuestRepository([
+    makeQuest({ id: "match", category: "sports", title: "Football", estimatedCost: { amount: 300, currency: "INR" } }),
+    makeQuest({ id: "wrong-category", category: "food", title: "Football food walk", estimatedCost: { amount: 100, currency: "INR" } }),
+    makeQuest({ id: "too-expensive", category: "sports", title: "Football premium", estimatedCost: { amount: 900, currency: "INR" } }),
+  ]);
+
+  const page = await repository.getQuestPage({
+    category: "sports",
+    maxCost: 500,
+    search: "football",
+  });
+  assert.deepEqual(page.items.map((quest) => quest.id), ["match"]);
+});
+
+test("cancelled and expired quests reject new membership", async () => {
+  for (const status of ["cancelled", "expired"] as const) {
+    const repository = new MockQuestRepository([makeQuest({ status })]);
+    await assert.rejects(() => repository.joinQuest("quest-test", "member"), /no longer active/);
+  }
 });
 
 test("validation rejects unsafe quest inputs and invalid filters", () => {
@@ -143,4 +185,71 @@ test("validation rejects unsafe quest inputs and invalid filters", () => {
   });
   assert.equal(invalid.success, false);
   assert.equal(validateQuestFilter({ maxCost: -1 }).success, false);
+});
+
+test("activity creation validates schedule and team-sport details", async () => {
+  const repository = new MockQuestRepository([]);
+  await assert.rejects(() => repository.createQuest({
+    title: "Five-a-side",
+    description: "A team game",
+    category: "sports",
+    activityType: "team-sport",
+    hostId: "host",
+    date: "2026-11-20",
+    startTime: "12:00",
+    endTime: "10:00",
+    locationLabel: "Arena",
+    capacity: 4,
+    activityDetails: { teamSize: 5 },
+    visibility: "public",
+    joinMode: "instant",
+    minimumAge: 16,
+    featured: false,
+  }), /Invalid quest/);
+  const created = await repository.createQuest({
+    title: "Five-a-side",
+    description: "A team game",
+    category: "sports",
+    activityType: "team-sport",
+    hostId: "host",
+    date: "2026-11-20",
+    startTime: "10:00",
+    endTime: "12:00",
+    locationLabel: "Arena",
+    capacity: 10,
+    activityDetails: { teamSize: 5 },
+    visibility: "public",
+    joinMode: "instant",
+    minimumAge: 16,
+    featured: false,
+  });
+  assert.equal(created.participantIds[0], "host");
+  assert.equal((await repository.getHostedQuests("host")).length, 1);
+});
+
+test("my activity groups separate active, pending, and past activities", async () => {
+  const repository = new MockQuestRepository([
+    makeQuest({ id: "hosted", hostId: "user-me" }),
+    makeQuest({ id: "joined", hostId: "other", participantIds: ["other", "user-me"] }),
+    makeQuest({ id: "past", hostId: "user-me", status: "completed" }),
+    makeQuest({ id: "pending", hostId: "other", joinMode: "approval", participantIds: ["other"] }),
+  ]);
+  const request = await repository.requestToJoin("pending", "user-me");
+  const groups = await repository.getMyActivities("user-me");
+  assert.deepEqual(groups.hosting.map((quest) => quest.id), ["hosted"]);
+  assert.deepEqual(groups.joined.map((quest) => quest.id), ["joined"]);
+  assert.deepEqual(groups.past.map((quest) => quest.id), ["past"]);
+  assert.equal(groups.pending[0]?.participant.id, request.id);
+  await assert.rejects(() => repository.requestToJoin("pending", "user-me"), /active membership or request/);
+});
+
+test("approval cannot exceed capacity and host actions remain protected", async () => {
+  const repository = new MockQuestRepository([
+    makeQuest({ id: "approval", hostId: "host", joinMode: "approval", capacity: 3, participantIds: ["host", "member"] }),
+  ]);
+  const request = await repository.requestToJoin("approval", "second");
+  const nextRequest = await repository.requestToJoin("approval", "third");
+  await repository.approveRequest("approval", request.id, "host");
+  await assert.rejects(() => repository.approveRequest("approval", nextRequest.id, "host"), /full/);
+  await assert.rejects(() => repository.cancelQuest("approval", "second"), /Only the host/);
 });

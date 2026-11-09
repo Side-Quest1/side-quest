@@ -1,10 +1,11 @@
 import { mockProfiles, mockQuests } from "./data";
 import { canCompleteQuest, canJoinQuest, participantStatusForJoin, statusAfterMembershipChange } from "./business-rules";
 import { validateQuestCreation, validateQuestUpdate } from "./validation";
-import type { AccountSettings, BlockedUser, ChatMessage, QuestCreationInput, QuestParticipant, QuestUpdateInput, SideQuest, UserProfile, UserReport, ParticipantStatus, ReportStatus } from "./types";
+import type { AccountSettings, BlockedUser, ChatMessage, MyActivityGroups, QuestCreationInput, QuestPage, QuestPageInput, QuestParticipant, QuestUpdateInput, SideQuest, UserProfile, UserReport, ParticipantStatus, ReportStatus } from "./types";
 
 export interface QuestRepository {
   getQuests(): Promise<SideQuest[]>;
+  getQuestPage(input?: QuestPageInput): Promise<QuestPage>;
   getQuestById(id: string): Promise<SideQuest | undefined>;
   createQuest(input: QuestCreationInput): Promise<SideQuest>;
   updateQuest(id: string, input: QuestUpdateInput, actorId: string): Promise<SideQuest>;
@@ -19,6 +20,7 @@ export interface QuestRepository {
   getJoinedQuests(userId: string): Promise<SideQuest[]>;
   getPendingRequests(userId: string): Promise<QuestParticipant[]>;
   getPendingRequestsForHost(hostId: string): Promise<QuestParticipant[]>;
+  getMyActivities(userId: string): Promise<MyActivityGroups>;
   getActivityRecap(id: string): Promise<import("./types").ActivityRecap | undefined>;
   getProfiles(): Promise<UserProfile[]>;
   getParticipants(questId: string): Promise<QuestParticipant[]>;
@@ -66,6 +68,26 @@ export class MockQuestRepository implements QuestRepository {
   }
 
   async getQuests() { return structuredClone(this.quests); }
+  async getQuestPage(input: QuestPageInput = {}) {
+    const query = input.search?.trim().toLowerCase();
+    const filtered = this.quests.filter((quest) =>
+      (!input.category || quest.category === input.category) &&
+      (!input.date || quest.date === input.date) &&
+      (!input.status || quest.status === input.status) &&
+      (!input.featured || quest.featured) &&
+      (input.maxCost === undefined || (quest.estimatedCost?.amount ?? 0) <= input.maxCost) &&
+      (!query || `${quest.title} ${quest.description} ${quest.locationLabel}`.toLowerCase().includes(query)),
+    );
+    const limit = Math.min(Math.max(input.limit ?? 20, 1), 50);
+    const offset = input.cursor ? Number.parseInt(input.cursor, 10) : 0;
+    if (!Number.isInteger(offset) || offset < 0) throw new Error("Invalid quest page cursor");
+    const items = filtered.slice(offset, offset + limit);
+    const nextOffset = offset + items.length;
+    return {
+      items: structuredClone(items),
+      ...(nextOffset < filtered.length ? { nextCursor: String(nextOffset) } : {}),
+    };
+  }
   async getProfiles() { return structuredClone(this.profiles); }
   async getBlockedUsers(blockerId: string) {
     return structuredClone(this.blockedUsers.filter((item) => item.blockerId === blockerId));
@@ -187,6 +209,9 @@ export class MockQuestRepository implements QuestRepository {
     if (quest.joinMode !== "approval") throw new Error("This quest accepts instant joins");
     const rule = canJoinQuest(quest, userId);
     if (!rule.allowed) throw new Error(rule.reason);
+    if (this.participants.some((item) => item.questId === id && item.userId === userId && (item.status === "pending" || item.status === "accepted"))) {
+      throw new Error("You already have an active membership or request");
+    }
     return this.addParticipant(quest, userId, "pending");
   }
 
@@ -250,6 +275,19 @@ export class MockQuestRepository implements QuestRepository {
     return structuredClone(this.participants.filter((participant) =>
       hostedQuestIds.has(participant.questId) && participant.status === "pending",
     ));
+  }
+
+  async getMyActivities(userId: string): Promise<MyActivityGroups> {
+    const isPast = (quest: SideQuest) => quest.status === "completed" || quest.status === "cancelled" || quest.status === "expired";
+    const hosting = this.quests.filter((quest) => quest.hostId === userId && !isPast(quest));
+    const joined = this.quests.filter((quest) => quest.hostId !== userId && quest.participantIds.includes(userId) && !isPast(quest));
+    const pending = this.participants
+      .filter((participant) => participant.userId === userId && participant.status === "pending")
+      .map((participant) => ({ participant, quest: this.requireQuest(participant.questId) }));
+    const past = this.quests.filter((quest) =>
+      (quest.hostId === userId || quest.participantIds.includes(userId)) && isPast(quest),
+    );
+    return structuredClone({ hosting, joined, pending, past });
   }
 
   async getActivityRecap(id: string) {

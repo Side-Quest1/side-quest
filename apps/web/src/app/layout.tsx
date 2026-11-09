@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
-import { Manrope, Geist_Mono } from "next/font/google";
+import { Inter, Manrope, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 const manrope = Manrope({
   variable: "--font-manrope",
+  subsets: ["latin"],
+});
+
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -30,8 +35,16 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${manrope.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${manrope.variable} ${inter.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var m=localStorage.getItem("sidequest-theme");var d=m==="dark"||(m!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.dataset.theme=d?"dark":"light"}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
