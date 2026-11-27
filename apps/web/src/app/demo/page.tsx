@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const plans = [
   { id: "cricket", title: "Evening cricket", area: "Gachibowli, Hyderabad", lat: 17.44, lon: 78.35, price: 200 },
@@ -14,12 +14,18 @@ type Message = { author: string; body: string };
 
 export default function Demo() {
   const [selected, setSelected] = useState(plans[0]);
+  const [date, setDate] = useState("");
   const [joined, setJoined] = useState<string[]>([]);
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const [draft, setDraft] = useState("");
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const date = tomorrow.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      setDate(tomorrow.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" }));
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, []);
   const member = joined.includes(selected.id);
   return <main className="sq-shell">
     <header className="sq-mast">SideQuest demo <Link className="sq-back" href="/">Back to live app</Link></header>
