@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useState } from "react";
 
 const plans = [
   { id: "cricket", title: "Evening cricket", area: "Gachibowli, Hyderabad", lat: 17.44, lon: 78.35, price: 200 },
@@ -13,18 +14,15 @@ type Message = { author: string; body: string };
 
 export default function Demo() {
   const [selected, setSelected] = useState(plans[0]);
-  const [date, setDate] = useState("");
   const [joined, setJoined] = useState<string[]>([]);
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const [draft, setDraft] = useState("");
-  useEffect(() => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    setDate(tomorrow.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" }));
-  }, []);
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const date = tomorrow.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
   const member = joined.includes(selected.id);
   return <main className="sq-shell">
-    <header className="sq-mast">SideQuest demo <a className="sq-back" href="/">Back to live app</a></header>
+    <header className="sq-mast">SideQuest demo <Link className="sq-back" href="/">Back to live app</Link></header>
     <div className="sq-content sq-section">
       <h1 className="sq-heading">Try a Hyderabad side quest</h1>
       <p>Demo only. These are fictional plans and approximate area markers, not scheduled meetups. Chat and joins stay in this page and reset on reload.</p>
