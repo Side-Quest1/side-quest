@@ -14,7 +14,7 @@
     "dev:mobile": "npm run start --workspace=apps/mobile",
     "typecheck:shared": "tsc --noEmit -p packages/shared/tsconfig.json",
     "typecheck:ui": "tsc --noEmit -p packages/ui/tsconfig.json",
-    "typecheck:web": "tsc --noEmit -p apps/web/tsconfig.json",
+    "typecheck:web": "npm exec --workspace=apps/web -- next typegen && tsc --noEmit -p apps/web/tsconfig.json",
     "typecheck:mobile": "tsc --noEmit -p apps/mobile/tsconfig.json",
     "lint:web": "npm run lint --workspace=apps/web",
     "build:web": "npm run build --workspace=apps/web",
