@@ -1,6 +1,8 @@
 "use client";
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import {
+  imageForCategory,
   CURRENT_USER_ID,
   MockQuestRepository,
   QUEST_CATEGORIES,
@@ -10,6 +12,7 @@ import {
   mockQuests,
   spotsRemaining,
   validateQuestCreation,
+  defaultQuestDate,
   type QuestCategory,
   type QuestActivityType,
   type JoinMode,
@@ -35,24 +38,7 @@ import {
 import type { ThemeMode } from "@sidequest/ui";
 import { QuestCard, type QuestCardData } from "@sidequest/ui/quest-card";
 
-const repository = new MockQuestRepository();
-function imageForCategory(category: string): string {
-  const images: Record<string, string> = {
-    sports: "https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=900&q=80",
-    food: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=900&q=80",
-    adventure: "https://images.unsplash.com/photo-1551632811-561732d1e306?auto=format&fit=crop&w=900&q=80",
-    fitness: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=900&q=80",
-    travel: "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=900&q=80",
-    gaming: "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=900&q=80",
-    study: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=900&q=80",
-    music: "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=900&q=80",
-    photography: "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?auto=format&fit=crop&w=900&q=80",
-    movies: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=900&q=80",
-    social: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=900&q=80",
-  };
-
-  return images[category.toLowerCase()] ?? images.social;
-}
+const Connected = dynamic(() => import("./connected"), { ssr: false });
 function toCardData(quest: SideQuest): QuestCardData {
   return {
     title: quest.title,
@@ -81,6 +67,12 @@ function actionForQuest(quest: SideQuest, pending: QuestParticipant | undefined)
 }
 
 export default function Home() {
+  return process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_SIDEQUEST_MODE === "mock"
+    ? <Preview/> : <Connected/>;
+}
+
+function Preview() {
+  const [repository] = useState(() => new MockQuestRepository());
   const [quests, setQuests] = useState<SideQuest[]>(() => mockQuests.map((quest) => structuredClone(quest)));
   const [profiles, setProfiles] = useState<UserProfile[]>(() => mockProfiles.map((profile) => structuredClone(profile)));
   const [participants, setParticipants] = useState<QuestParticipant[]>(() => mockParticipants.map((participant) => structuredClone(participant)));
@@ -101,7 +93,7 @@ export default function Home() {
   const [createDescription, setCreateDescription] = useState("");
   const [createCategory, setCreateCategory] = useState<QuestCategory>("social");
   const [createActivityType, setCreateActivityType] = useState<QuestActivityType>("social");
-  const [createDate, setCreateDate] = useState("2026-11-21");
+  const [createDate, setCreateDate] = useState(defaultQuestDate);
   const [createStartTime, setCreateStartTime] = useState("10:00");
   const [createEndTime, setCreateEndTime] = useState("12:00");
   const [createLocation, setCreateLocation] = useState("Bengaluru");
@@ -197,28 +189,36 @@ export default function Home() {
     setLoading(true);
     setError(undefined);
     try {
-      const [nextQuests, nextProfiles, nextPending, nextActivities] = await Promise.all([
-        repository.getQuests(),
+      const query = {
+        ...(selectedCategory ? { category: selectedCategory } : {}),
+        ...(search.trim() ? { search: search.trim() } : {}),
+        ...(maxCost ? { maxCost: Number(maxCost) } : {}),
+        limit: 20,
+      };
+      const displayedCount = Math.max(quests.length, 20);
+      const firstPage = await repository.getQuestPage(query);
+      const pages = [firstPage];
+      let cursor = firstPage.nextCursor;
+      let itemCount = firstPage.items.length;
+      while (cursor && itemCount < displayedCount) {
+        const page = await repository.getQuestPage({ ...query, cursor });
+        pages.push(page);
+        cursor = page.nextCursor;
+        itemCount += page.items.length;
+      }
+      const nextQuests = pages.flatMap((page) => page.items);
+      const [nextProfiles, nextPending, nextActivities, participantGroups] = await Promise.all([
         repository.getProfiles(),
         repository.getPendingRequestsForHost(CURRENT_USER_ID),
         repository.getMyActivities(CURRENT_USER_ID),
+        Promise.all(nextQuests.map((quest) => repository.getParticipants(quest.id))),
       ]);
       setQuests(nextQuests);
-      setNextCursor(undefined);
+      setNextCursor(cursor);
       setProfiles(nextProfiles);
       setPendingRequests(nextPending);
       setMyActivities(nextActivities);
-      setParticipants(
-        nextQuests.flatMap((quest) =>
-          quest.participantIds.map((userId, index) => ({
-            id: `${quest.id}-visible-${index}`,
-            questId: quest.id,
-            userId,
-            status: "accepted" as const,
-            joinedAt: quest.createdAt,
-          })),
-        ),
-      );
+      setParticipants(participantGroups.flat());
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Unable to load quests");
     } finally {
@@ -422,7 +422,6 @@ export default function Home() {
     ]);
     setProfile(nextProfile);
     setSettings(nextSettings);
-    setThemeMode(nextSettings.theme);
     setBlockedUsers(nextBlocked);
     setReports(nextReports);
     setShowSettings(true);

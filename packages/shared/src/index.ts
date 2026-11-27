@@ -4,3 +4,5 @@ export * from "./data";
 export * from "./validation";
 export * from "./business-rules";
 export * from "./repository";
+
+export { imageForCategory } from "./imagery";

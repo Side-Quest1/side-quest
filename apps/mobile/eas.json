@@ -1,0 +1,6 @@
+{
+  "build": {
+    "preview": { "distribution": "internal", "environment": "preview" },
+    "production": { "environment": "production", "autoIncrement": true }
+  }
+}

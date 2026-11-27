@@ -1,0 +1,19 @@
+name: Verify SideQuest
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:native-tree
+      - run: npm run test:database
+      - run: npm run qa
+      - run: npm exec --workspace=apps/mobile -- expo export --platform android
+      - run: npm audit --omit=dev --audit-level=high

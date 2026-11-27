@@ -1,8 +1,46 @@
 # SideQuest Development Log
 
+## 2026-11-24 · Connected implementation in progress
+
+- Phase A: reproduced same-line JSX whitespace compiling to a string under the My Activities native View. Removed the child, added a compiled-tree regression check, tightened schedule validation, and corrected theme hydration and mobile refresh paths.
+- Phases B–D: introduced connected client and application workspaces, explicit development preview mode, email sessions, UTC activity storage, age-cohort policies and row-locked participation. Development test identities require trusted local provisioning.
+- Phases E–G: added durable chat, membership alerts, attendance, safety reports, blocks, local database tests, an expiration job and a CI workflow. Hosted services, native runtime, delivery and release verification remain pending.
+
 Record a timestamped entry here after every repository change. Use the local
 date and time with the UTC offset, and briefly describe the files or behavior
 affected.
+
+## 2026-11-17 09:45:03 +05:30
+
+### Fixed iOS runtime safety, storage fallback, and mobile safe areas
+
+- Replaced the deprecated React Native `SafeAreaView` with
+  `react-native-safe-area-context`, added `SafeAreaProvider` at the app root,
+  and applied top/bottom insets to the main scroll surface, full-page screens,
+  and persistent bottom navigation. This prevents headers and back controls
+  from entering the status-bar/notch area while preserving scroll reachability.
+- Audited the mobile and shared native JSX tree for raw text under native
+  containers. All literal labels are now confirmed to render through `Text` or
+  shared controls that provide a `Text` wrapper; no raw JSX text remains under
+  `View`, `Pressable`, `ScrollView`, keyboard, or safe-area containers.
+- Aligned AsyncStorage with the Expo SDK 58 documented Expo Go version
+  (`2.2.0`) in both mobile and shared UI dependencies. Theme storage failures
+  now fall back to the System/current-session preference, retain theme
+  switching, and emit at most one diagnostic warning instead of logging on
+  every render.
+- Added the Expo-compatible safe-area dependency and restored `tsx` as an
+  explicit root development dependency so the existing shared QA script does
+  not depend on an undeclared transitive install.
+- Verification: mobile/UI typechecks passed, Android Expo export passed,
+  `git diff --check` passed, and the static JSX audit found no native
+  container text violations. Full QA passed through all tests, typechecks,
+  lint, and web compilation, but the final Next.js build was stopped by the
+  existing Next.js security-vulnerability guard; no unrelated web dependency
+  upgrade was applied.
+- iOS Simulator/device execution was unavailable on the Windows environment.
+  The iOS launch command reached Metro startup but could not provide an
+  actual iOS runtime session; Expo Go persistence and visual behavior remain
+  to be verified on an iOS device/simulator.
 
 ## 2026-11-09 13:18:15 +05:30
 
@@ -464,3 +502,36 @@ affected.
 - `git diff --check` passed.
 - Confirmed no Supabase references were added under `apps/` or `packages/`.
 - All changes remain uncommitted and unpushed.
+
+## Connected discovery and verification · November 24, 2026
+
+Both clients now consume the authenticated recommendation RPC. The connected experience includes an image-led feed, approximate-area map, five-step drafts, profile preferences, interaction controls, native routing, invitation sharing and QR codes. Local Auth/PostgREST tests exercised three sessions and the last-seat race. Edge checked seven screen widths. The exact worktree inventory and remaining release dependencies are in [Verification](VERIFICATION.md). Ranking weights, measurement definitions and QA setup are in [Personalized discovery](PERSONALIZED-DISCOVERY.md).
+
+## November 27, 2026 — Recovery and navigation stabilization
+
+- Added an account-specific checkpoint before onboarding submission. Retry restores display name, city, interests, and the selected approximate area; date of birth is not persisted locally.
+- Save discovery preferences and optional age verification before the profile completion signal. Preserve the checkpoint until all steps succeed, and expose Retry when setup loading fails.
+- Grouped quest participation, directions, and chat controls with pending/joined guidance in the shared web/mobile workflow.
+- Reserved scrollbar space in the web root to prevent horizontal navigation shifts when switching between short Alerts content and longer Profile/Discover pages. The navigation remains fixed outside the content entrance animation.
+- Suggested shorter navigation labels: Quests (recommended), My Plans, Joined, or Activity. The current My Activities label is unchanged pending selection; Joined does not describe hosted quests fully.
+- Existing pending work included in this repository checkpoint covers connected Supabase workflows and migrations, Expo routing, discovery preferences, maps/directions, quest chat, age verification, demo activities, imagery, and shared schedule validation. This entry does not certify those entire workflows as runtime-tested.
+- Excluded local Supabase CLI linkage/cache files from version control; environment files and build output remain ignored.
+- Staged-file review found trailing spaces in the two bundled font licenses; removed those spaces without changing license text.
+
+### Confirmed verification
+
+- Onboarding recovery tests: 7 passed, exit 0.
+- Shared repository tests: 16 passed, exit 0.
+- Native JSX tree check: 1 passed, exit 0 (static validation only).
+- Web, mobile, and UI typechecks: exit 0.
+- Android export: exit 0; bundle generated successfully.
+- Web production build after the scrollbar fix: exit 0.
+- `git diff --check`: exit 0, with existing LF/CRLF conversion warnings.
+- Web lint: exit 1. Existing `apps/web/src/app/demo/page.tsx` errors: line 23 synchronously updates state inside an effect; line 27 uses an internal anchor instead of Next Link.
+
+### Remaining verification limits
+
+- Browser automation host was unavailable; navigation stability and signed-in onboarding recovery have not been visually verified in this pass.
+- No physical-device runtime verification was performed. Android export and the JSX check do not establish runtime correctness.
+- New checkpoints cannot identify historical partial onboarding saves created before this recovery implementation.
+- User requested committing and pushing all current project changes on the existing branch; no database deployment is part of this push.

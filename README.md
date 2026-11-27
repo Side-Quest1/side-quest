@@ -1,5 +1,7 @@
 # SideQuest
 
+The default clients now open a Supabase-backed activity workflow. The Phase 1 description below documents the explicit development preview. See [connected setup, database checks, and release requirements](docs/CONNECTED-DEVELOPMENT.md).
+
 **Less scrolling. More doing.**
 
 SideQuest is a platform for people who want to do something but don't have enough people to go with. Users can post or discover plans—like a trek, football game, food crawl, gig, road trip, or casual hangout—and join others who are interested.

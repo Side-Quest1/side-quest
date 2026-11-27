@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View, useColorScheme, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from "react-native";
 import { colors, radii, spacing, themes, type BadgeVariant, type ButtonSize, type ButtonVariant, type Theme, type ThemeMode } from "./index";
 
@@ -11,20 +11,31 @@ const ThemeContext = createContext<{ mode: ThemeMode; theme: Theme; setMode: (mo
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<ThemeMode>("system");
+  const storageWarningShown = useRef(false);
   useEffect(() => {
     let active = true;
     void AsyncStorage.getItem("sidequest-theme")
       .then((saved) => {
         if (active && (saved === "light" || saved === "dark" || saved === "system")) setMode(saved);
       })
-      .catch((error: unknown) => console.warn("Unable to load saved theme preference.", error));
+      .catch(() => {
+        if (!storageWarningShown.current) {
+          storageWarningShown.current = true;
+          console.warn("Theme preference storage is unavailable; using the current-session preference.");
+        }
+      });
     return () => { active = false; };
   }, []);
   const system = useColorScheme();
   const theme = mode === "dark" || (mode === "system" && system === "dark") ? themes.dark : themes.light;
   const updateMode = (next: ThemeMode) => {
     setMode(next);
-    void AsyncStorage.setItem("sidequest-theme", next).catch((error: unknown) => console.warn("Unable to save theme preference.", error));
+    void AsyncStorage.setItem("sidequest-theme", next).catch(() => {
+      if (!storageWarningShown.current) {
+        storageWarningShown.current = true;
+        console.warn("Theme preference storage is unavailable; using the current-session preference.");
+      }
+    });
   };
   const value = useMemo(() => ({ mode, theme, setMode: updateMode }), [mode, theme]);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
@@ -43,6 +54,7 @@ const buttonColors: Record<ButtonVariant, { backgroundColor: string; color: stri
 };
 
 const buttonPadding: Record<ButtonSize, number> = { small: 8, medium: 12, large: 16 };
+const buttonHorizontalPadding: Record<ButtonSize, number> = { small: 12, medium: 20, large: 24 };
 
 export type ButtonProps = { children: ReactNode; variant?: ButtonVariant; size?: ButtonSize; loading?: boolean; disabled?: boolean; onPress?: () => void; accessibilityLabel?: string };
 
@@ -50,7 +62,7 @@ export function Button({ variant = "primary", size = "medium", loading = false, 
   const { theme } = useTheme();
   const palette = buttonColors[variant];
   const foreground = variant === "primary" ? theme.primaryForeground : variant === "secondary" ? theme.secondaryForeground : variant === "danger" ? theme.textInverse : palette.color;
-  return <Pressable {...props} accessibilityRole="button" disabled={disabled || loading} style={[styles.button, { backgroundColor: variant === "primary" ? theme.primary : variant === "secondary" ? theme.secondary : variant === "danger" ? theme.error : "transparent", borderColor: variant === "outline" ? theme.primary : "transparent", borderWidth: variant === "outline" ? 1 : 0, opacity: disabled || loading ? 0.55 : 1, paddingVertical: buttonPadding[size] }]}><Text style={{ color: variant === "outline" || variant === "ghost" ? theme.primary : foreground, fontWeight: "700" }}>{loading ? "Loading…" : children}</Text></Pressable>;
+  return <Pressable {...props} accessibilityRole="button" disabled={disabled || loading} style={({ pressed }) => [styles.button, { backgroundColor: variant === "primary" ? theme.primary : variant === "secondary" ? theme.secondary : variant === "danger" ? theme.error : "transparent", borderColor: variant === "outline" ? theme.primary : "transparent", borderWidth: variant === "outline" ? 1 : 0, opacity: disabled || loading ? 0.55 : pressed ? 0.86 : 1, paddingHorizontal: buttonHorizontalPadding[size], paddingVertical: buttonPadding[size], transform: [{ scale: pressed && !disabled && !loading ? 0.98 : 1 }] }]}><Text style={{ color: variant === "outline" || variant === "ghost" ? theme.primary : foreground, fontWeight: "700" }}>{loading ? "Loading…" : children}</Text></Pressable>;
 }
 
 export function Input({ invalid = false, style, ...props }: TextInputProps & { invalid?: boolean; style?: StyleProp<TextStyle> }) {
@@ -84,7 +96,7 @@ export function ThemePreview({ mode }: { mode: ThemeMode }) {
 }
 
 const styles = StyleSheet.create({
-  button: { alignItems: "center", borderRadius: radii.control, justifyContent: "center", minHeight: 44, paddingHorizontal: spacing.xl },
+  button: { alignItems: "center", borderRadius: radii.control, justifyContent: "center", minHeight: 44 },
   input: { backgroundColor: themes.light.surface, borderRadius: radii.control, borderWidth: 1, color: themes.light.textPrimary, minHeight: 44, paddingHorizontal: spacing.lg },
   badge: { alignSelf: "flex-start", borderRadius: radii.pill, paddingHorizontal: 10, paddingVertical: 6 },
   card: { backgroundColor: themes.light.surface, borderColor: themes.light.border, borderRadius: radii.card, borderWidth: 1, padding: spacing["2xl"] },
