@@ -179,7 +179,9 @@ export class MockQuestRepository implements QuestRepository {
   async updateQuest(id: string, input: QuestUpdateInput, actorId: string) {
     const quest = this.requireQuest(id);
     this.requireHost(quest, actorId);
-    const validation = validateQuestUpdate(input);
+    const rescheduled = input.date !== undefined || input.startTime !== undefined || input.endTime !== undefined;
+    const validation = rescheduled ? validateQuestCreation({ ...quest, ...input }) : validateQuestUpdate(input);
+    if (input.capacity !== undefined && input.capacity < quest.participantIds.length) throw new Error("Capacity is below current membership");
     if (!validation.success) throw new Error(`Invalid quest update: ${JSON.stringify(validation.errors)}`);
     Object.assign(quest, input);
     quest.status = statusAfterMembershipChange(quest, quest.participantIds.length);

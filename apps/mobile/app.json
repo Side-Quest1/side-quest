@@ -1,11 +1,12 @@
 {
   "expo": {
-    "name": "mobile",
+    "name": "SideQuest",
+    "scheme": "sidequest",
     "slug": "side-quest",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true
     },
@@ -26,6 +27,13 @@
         "projectId": "b72b56d7-63ca-4fce-9b55-a6a1cefe9562"
       }
     },
-    "owner": "pavanchary"
+    "owner": "pavanchary",
+    "plugins": [
+      "expo-router",
+      "expo-notifications",
+      "expo-font",
+      "expo-image",
+      "expo-status-bar"
+    ]
   }
 }

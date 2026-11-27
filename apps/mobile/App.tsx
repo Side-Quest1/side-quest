@@ -1,10 +1,11 @@
 import { StatusBar } from "expo-status-bar";
+import Connected from "./Connected";
 import { useEffect, useMemo, useState } from "react";
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   BackHandler,
   KeyboardAvoidingView,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -20,6 +21,7 @@ import {
   mockQuests,
   spotsRemaining,
   validateQuestCreation,
+  defaultQuestDate,
   type QuestCategory,
   type QuestActivityType,
   type JoinMode,
@@ -50,7 +52,6 @@ import {
 } from "@sidequest/ui/quest-card-native";
 import { colors, spacing, themes } from "@sidequest/ui";
 
-const repository = new MockQuestRepository();
 type MobileTab = "discover" | "activities" | "create" | "alerts" | "profile";
 
 const navigationItems: ReadonlyArray<{
@@ -98,12 +99,15 @@ function getAction(quest: SideQuest, participant?: QuestParticipant) {
     : { label: "Join quest", disabled: false };
 }
 
-export default function App() {
-  return <ThemeProvider><AppContent /></ThemeProvider>;
+export default function App({initialActivityId}:{initialActivityId?:string}={}) {
+  return <SafeAreaProvider><ThemeProvider>{__DEV__ && process.env.EXPO_PUBLIC_SIDEQUEST_MODE === "mock"
+    ? <AppContent /> : <Connected initialActivityId={initialActivityId}/>}</ThemeProvider></SafeAreaProvider>;
 }
 
 function AppContent() {
+  const [repository] = useState(() => new MockQuestRepository());
   const { mode: themeMode, theme: activeTheme, setMode: setThemeMode } = useTheme();
+  const safeArea = useSafeAreaInsets();
   const themedStyles = {
     logo: { color: activeTheme.textPrimary },
     logoAccent: { color: activeTheme.textSecondary },
@@ -171,7 +175,7 @@ function AppContent() {
   const [createDescription, setCreateDescription] = useState("");
   const [createCategory, setCreateCategory] = useState<QuestCategory>("social");
   const [createActivityType, setCreateActivityType] = useState<QuestActivityType>("social");
-  const [createDate, setCreateDate] = useState("2026-11-21");
+  const [createDate, setCreateDate] = useState(defaultQuestDate);
   const [createStartTime, setCreateStartTime] = useState("10:00");
   const [createEndTime, setCreateEndTime] = useState("12:00");
   const [createLocation, setCreateLocation] = useState("Bengaluru");
@@ -303,17 +307,34 @@ function AppContent() {
     setLoading(true);
     setError(undefined);
     try {
-      const page = await repository.getQuestPage({
+      const query = {
         ...(selectedCategory ? { category: selectedCategory } : {}),
         ...(search.trim() ? { search: search.trim() } : {}),
         ...(maxCost === undefined ? {} : { maxCost }),
         limit: 20,
-      });
-      setQuests(page.items);
-      setNextCursor(page.nextCursor);
-      setPendingRequests(await repository.getPendingRequestsForHost(CURRENT_USER_ID));
-      setMyActivities(await repository.getMyActivities(CURRENT_USER_ID));
-      setFeedback("Quest list refreshed.");
+      };
+      const displayedCount = Math.max(quests.length, 20);
+      const firstPage = await repository.getQuestPage(query);
+      const pages = [firstPage];
+      let cursor = firstPage.nextCursor;
+      let itemCount = firstPage.items.length;
+      while (cursor && itemCount < displayedCount) {
+        const page = await repository.getQuestPage({ ...query, cursor });
+        pages.push(page);
+        cursor = page.nextCursor;
+        itemCount += page.items.length;
+      }
+      const nextQuests = pages.flatMap((page) => page.items);
+      const [nextPending, nextActivities, participantGroups] = await Promise.all([
+        repository.getPendingRequestsForHost(CURRENT_USER_ID),
+        repository.getMyActivities(CURRENT_USER_ID),
+        Promise.all(nextQuests.map((quest) => repository.getParticipants(quest.id))),
+      ]);
+      setQuests(nextQuests);
+      setNextCursor(cursor);
+      setPendingRequests(nextPending);
+      setMyActivities(nextActivities);
+      setParticipants(participantGroups.flat());
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Unable to load quests");
     } finally {
@@ -354,7 +375,7 @@ function AppContent() {
             : "You joined the quest.",
         );
       }
-      setQuests(await repository.getQuests());
+      await refresh();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Unable to update membership");
     } finally {
@@ -401,7 +422,7 @@ function AppContent() {
         return;
       }
       const created = await repository.createQuest(input);
-      setQuests(await repository.getQuests());
+      await refresh();
       setCreateTitle("");
       setCreateDescription("");
       setShowCreate(false);
@@ -491,7 +512,6 @@ function AppContent() {
     ]);
     setProfile(nextProfile);
     setSettings(nextSettings);
-    setThemeMode(nextSettings.theme);
     setBlockedUsers(nextBlocked);
     setReports(nextReports);
     setShowSettings(true);
@@ -517,9 +537,9 @@ function AppContent() {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: activeTheme.background }]}>
+    <SafeAreaView edges={["top"]} style={[styles.safeArea, { backgroundColor: activeTheme.background }]}>
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: 132 + safeArea.bottom }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -681,7 +701,7 @@ function AppContent() {
         </>}
       </ScrollView>
       {!showCreate && !showMyQuests && !showSettings && !coordinationQuestId && !selectedQuest && (
-        <View style={[styles.bottomNav, themedStyles.bottomNav]} accessibilityRole="tablist">
+        <View style={[styles.bottomNav, themedStyles.bottomNav, { bottom: 12 + safeArea.bottom }]} accessibilityRole="tablist">
           {navigationItems.map((item) => {
             const active = activeTab === item.id;
             const isCreate = item.id === "create";
@@ -707,7 +727,7 @@ function AppContent() {
         </View>
       )}
       <StatusBar style={activeTheme === themes.dark ? "light" : "dark"} />
-      <View style={[styles.fullScreen, !selectedQuest && styles.hiddenScreen]}>
+      <SafeAreaView edges={["top", "bottom"]} style={[styles.fullScreen, !selectedQuest && styles.hiddenScreen, { backgroundColor: activeTheme.background }]}>
         {selectedQuest && (
           <View style={[styles.modalBackdrop, themedStyles.modalBackdrop]}>
             <Card style={styles.detailsCard}>
@@ -788,8 +808,8 @@ function AppContent() {
             </Card>
           </View>
         )}
-      </View>
-      <View style={[styles.fullScreen, !showSettings && styles.hiddenScreen]}>
+      </SafeAreaView>
+      <SafeAreaView edges={["top", "bottom"]} style={[styles.fullScreen, !showSettings && styles.hiddenScreen, { backgroundColor: activeTheme.background }]}>
         <View style={[styles.modalBackdrop, themedStyles.modalBackdrop]}>
           <Card style={styles.detailsCard}>
             <ScrollView contentContainerStyle={styles.modalScrollContent} showsVerticalScrollIndicator={false} style={styles.modalScroll}>
@@ -800,7 +820,7 @@ function AppContent() {
               <Input accessibilityLabel="Bio" onChangeText={(bio) => setProfile({ ...profile, bio })} value={profile.bio} />
               <Button onPress={() => void repository.updateProfile(CURRENT_USER_ID, profile).then(setProfile)}>Save profile</Button>
               <Text style={[styles.participantTitle, themedStyles.participantTitle]}>Theme</Text>
-              <View style={styles.myQuestActions}>{(["light", "dark", "system"] as const).map((theme) => <Button key={theme} size="small" variant={themeMode === theme ? "secondary" : "outline"} onPress={() => { setThemeMode(theme); try { globalThis.localStorage?.setItem("sidequest-theme", theme); } catch { /* native storage unavailable */ } void repository.updateAccountSettings(CURRENT_USER_ID, { theme }).then(setSettings); }}>{theme}</Button>)}</View>
+              <View style={styles.myQuestActions}>{(["light", "dark", "system"] as const).map((theme) => <Button key={theme} size="small" variant={themeMode === theme ? "secondary" : "outline"} onPress={() => { setThemeMode(theme); void repository.updateAccountSettings(CURRENT_USER_ID, { theme }).then(setSettings); }}>{theme}</Button>)}</View>
               <Text style={[styles.participantTitle, themedStyles.participantTitle]}>Notifications</Text>
               {(["questUpdates", "chatMessages", "reminders"] as const).map((key) => <Pressable key={key} style={styles.preferenceRow} onPress={() => void repository.updateAccountSettings(CURRENT_USER_ID, { notifications: { ...settings.notifications, [key]: !settings.notifications[key] } }).then(setSettings)}><Text style={[styles.detailsMeta, themedStyles.detailsMeta]}>{settings.notifications[key] ? "✓" : "○"} {key}</Text></Pressable>)}
               <Text style={[styles.detailsMeta, themedStyles.detailsMeta]}>Hosted {quests.filter((q) => q.hostId === CURRENT_USER_ID).length} · Joined {quests.filter((q) => q.hostId !== CURRENT_USER_ID && q.participantIds.includes(CURRENT_USER_ID)).length} · Completed {quests.filter((q) => q.status === "completed" && (q.hostId === CURRENT_USER_ID || q.participantIds.includes(CURRENT_USER_ID))).length}</Text>
@@ -810,8 +830,8 @@ function AppContent() {
             </ScrollView>
           </Card>
         </View>
-      </View>
-      <View style={[styles.fullScreen, !coordinationQuestId && styles.hiddenScreen]}>
+      </SafeAreaView>
+      <SafeAreaView edges={["top", "bottom"]} style={[styles.fullScreen, !coordinationQuestId && styles.hiddenScreen, { backgroundColor: activeTheme.background }]}>
         <View style={[styles.modalBackdrop, themedStyles.modalBackdrop]}>
           <Card style={styles.detailsCard}>
             <ScrollView contentContainerStyle={styles.modalScrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={styles.modalScroll}>
@@ -835,13 +855,16 @@ function AppContent() {
             </ScrollView>
           </Card>
         </View>
-      </View>
-      <View style={[styles.fullScreen, !showMyQuests && styles.hiddenScreen]}>
+      </SafeAreaView>
+      <SafeAreaView edges={["top", "bottom"]} style={[styles.fullScreen, !showMyQuests && styles.hiddenScreen, { backgroundColor: activeTheme.background }]}>
         <View style={[styles.modalBackdrop, themedStyles.modalBackdrop]}>
           <Card style={styles.detailsCard}>
             <ScrollView contentContainerStyle={styles.modalScrollContent} showsVerticalScrollIndicator={false} style={styles.modalScroll}>
             <View style={styles.modalHeader}>
-              <View>              <Text style={[styles.detailsTitle, themedStyles.detailsTitle]}>My activities</Text><Text style={[styles.detailsMeta, themedStyles.detailsMeta]}>Hosting, joined, pending, and past</Text></View>
+              <View>
+                <Text style={[styles.detailsTitle, themedStyles.detailsTitle]}>My activities</Text>
+                <Text style={[styles.detailsMeta, themedStyles.detailsMeta]}>Hosting, joined, pending, and past</Text>
+              </View>
               <Pressable onPress={() => setShowMyQuests(false)}>
                 <Text style={[styles.backText, themedStyles.close]}>Back</Text>
               </Pressable>
@@ -893,8 +916,8 @@ function AppContent() {
             </ScrollView>
           </Card>
         </View>
-      </View>
-      <View style={[styles.fullScreen, !showCreate && styles.hiddenScreen]}>
+      </SafeAreaView>
+      <SafeAreaView edges={["top", "bottom"]} style={[styles.fullScreen, !showCreate && styles.hiddenScreen, { backgroundColor: activeTheme.background }]}>
         <KeyboardAvoidingView behavior="padding" style={[styles.modalBackdrop, themedStyles.modalBackdrop]}>
           <Card style={styles.detailsCard}>
             <ScrollView
@@ -938,7 +961,7 @@ function AppContent() {
             </ScrollView>
           </Card>
         </KeyboardAvoidingView>
-      </View>
+      </SafeAreaView>
     </SafeAreaView>
   );
 }

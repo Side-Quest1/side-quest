@@ -7,15 +7,22 @@
     "packages/*"
   ],
   "scripts": {
+    "test:integration": "tsx supabase/test/local-stack.ts",
+    "test:database": "node --test supabase/test/*.test.mjs",
+    "test:native-tree": "node --test apps/mobile/test/native-tree.test.cjs",
     "dev:web": "npm run dev --workspace=apps/web",
     "dev:mobile": "npm run start --workspace=apps/mobile",
     "typecheck:shared": "tsc --noEmit -p packages/shared/tsconfig.json",
     "typecheck:ui": "tsc --noEmit -p packages/ui/tsconfig.json",
-    "typecheck:web": "tsc --noEmit -p apps/web/tsconfig.json",
+    "typecheck:web": "npm exec --workspace=apps/web -- next typegen && tsc --noEmit -p apps/web/tsconfig.json",
     "typecheck:mobile": "tsc --noEmit -p apps/mobile/tsconfig.json",
     "lint:web": "npm run lint --workspace=apps/web",
     "build:web": "npm run build --workspace=apps/web",
     "test:shared": "npx --no-install tsx --test packages/shared/test/repository.test.ts",
     "qa": "npm run test:shared && npm run typecheck:shared && npm run typecheck:ui && npm run typecheck:web && npm run typecheck:mobile && npm run lint:web && npm run build:web"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.6.0",
+    "tsx": "^4.23.15"
   }
 }

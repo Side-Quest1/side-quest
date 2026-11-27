@@ -1,5 +1,7 @@
 # SideQuest Architecture
 
+The connected path uses `packages/application`, `packages/adapters`, and versioned Supabase migrations. [Connected development](CONNECTED-DEVELOPMENT.md) describes its data flow and admission policy. The Phase 1 architecture below describes the retained preview.
+
 ## Current baseline
 
 The repository is an npm workspace monorepo with two applications and one

@@ -1,0 +1,17 @@
+{
+  "name": "@sidequest/application",
+  "private": true,
+  "version": "0.1.0",
+  "exports": {
+    "./activities": "./src/live-activities.tsx",
+    "./share": "./src/share.ts"
+  },
+  "dependencies": {
+    "@sidequest/adapters": "0.1.0",
+    "@sidequest/shared": "0.1.0",
+    "qrcode-generator": "^2.0.4"
+  },
+  "peerDependencies": {
+    "react": "19.3.0"
+  }
+}

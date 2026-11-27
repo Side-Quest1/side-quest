@@ -16,5 +16,8 @@ dist/
 build/
 coverage/
 
+# Local Supabase CLI linkage and cache
+supabase/.temp/
+
 # Dependencies
 node_modules/

@@ -1,0 +1,8 @@
+{
+  "name": "@sidequest/adapters",
+  "private": true,
+  "version": "0.1.0",
+  "exports": { ".": "./src/index.ts", "./use-account": "./src/use-account.ts" },
+  "dependencies": { "@supabase/supabase-js": "2.119.2", "@sidequest/shared": "0.1.0" },
+  "peerDependencies": { "react": "19.3.0" }
+}

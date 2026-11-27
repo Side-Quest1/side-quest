@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { MockQuestRepository } from "../src/repository.ts";
 import type { SideQuest } from "../src/types.ts";
-import { validateQuestCreation, validateQuestFilter } from "../src/validation.ts";
+import { defaultQuestDate, validateQuestCreation, validateQuestFilter } from "../src/validation.ts";
 
 const makeQuest = (overrides: Partial<SideQuest> = {}): SideQuest => ({
   id: "quest-test",
@@ -10,9 +10,8 @@ const makeQuest = (overrides: Partial<SideQuest> = {}): SideQuest => ({
   description: "A test activity",
   category: "social",
   activityType: "social",
-  activityType: "social",
   hostId: "host",
-  date: "2026-11-20",
+  date: "2030-01-03",
   startTime: "10:00",
   endTime: "12:00",
   locationLabel: "Test location",
@@ -173,7 +172,7 @@ test("validation rejects unsafe quest inputs and invalid filters", () => {
     description: "",
     category: "social",
     hostId: "user-me",
-    date: "2026-11-20",
+    date: "2030-01-03",
     startTime: "12:00",
     endTime: "10:00",
     locationLabel: "",
@@ -187,6 +186,51 @@ test("validation rejects unsafe quest inputs and invalid filters", () => {
   assert.equal(validateQuestFilter({ maxCost: -1 }).success, false);
 });
 
+test("activity creation rejects past dates and start times", () => {
+  const input = {
+    title: "Future activity",
+    description: "A valid activity description",
+    category: "social" as const,
+    activityType: "social" as const,
+    hostId: "user-me",
+    date: "2030-01-01",
+    startTime: "12:00",
+    endTime: "13:00",
+    locationLabel: "Bengaluru",
+    capacity: 4,
+    visibility: "public" as const,
+    joinMode: "instant" as const,
+    minimumAge: 16,
+    featured: false,
+  };
+  const now = new Date(2030, 0, 2, 10, 30);
+  const pastDate = validateQuestCreation(input, now);
+  assert.equal(pastDate.success, false);
+  if (!pastDate.success) assert.equal(pastDate.errors.date, "Choose a future date");
+
+  const pastTime = validateQuestCreation({ ...input, date: "2030-01-02", startTime: "10:30", endTime: "12:00" }, now);
+  assert.equal(pastTime.success, false);
+  if (!pastTime.success) assert.equal(pastTime.errors.startTime, "Choose a future start time");
+  assert.equal(defaultQuestDate(new Date(2030, 0, 2)), "2030-01-03");
+  assert.equal(defaultQuestDate(new Date(2030,11,31,23,59)), "2031-01-01");
+  assert.equal(validateQuestCreation({...input, date:"2030-02-30"},now).success,false);
+  assert.equal(validateQuestCreation({...input, date:"2030-01-03",endTime:"25:70"},now).success,false);
+  assert.equal(validateQuestCreation({...input, date:"2030-01-02",startTime:"10:31"},now).success,true);
+  const previousZone=process.env.TZ;
+  try {
+    const instant=new Date("2030-01-01T10:30:00Z");
+    process.env.TZ="Pacific/Kiritimati";
+    assert.equal(defaultQuestDate(instant),"2030-01-03");
+    process.env.TZ="Pacific/Honolulu";
+    assert.equal(defaultQuestDate(instant),"2030-01-02");
+    process.env.TZ="America/New_York";
+    assert.equal(validateQuestCreation({...input,date:"2030-03-10",startTime:"02:30",endTime:"04:30"},now).success,false);
+    assert.equal(validateQuestCreation({...input,date:"2030-11-03",startTime:"01:45",endTime:"03:00"},new Date("2030-11-03T01:15:00-05:00")).success,false);
+  } finally {
+    if(previousZone===undefined)delete process.env.TZ;else process.env.TZ=previousZone;
+  }
+});
+
 test("activity creation validates schedule and team-sport details", async () => {
   const repository = new MockQuestRepository([]);
   await assert.rejects(() => repository.createQuest({
@@ -195,7 +239,7 @@ test("activity creation validates schedule and team-sport details", async () => 
     category: "sports",
     activityType: "team-sport",
     hostId: "host",
-    date: "2026-11-20",
+    date: "2030-01-03",
     startTime: "12:00",
     endTime: "10:00",
     locationLabel: "Arena",
@@ -212,7 +256,7 @@ test("activity creation validates schedule and team-sport details", async () => 
     category: "sports",
     activityType: "team-sport",
     hostId: "host",
-    date: "2026-11-20",
+    date: "2030-01-03",
     startTime: "10:00",
     endTime: "12:00",
     locationLabel: "Arena",
@@ -225,6 +269,15 @@ test("activity creation validates schedule and team-sport details", async () => 
   });
   assert.equal(created.participantIds[0], "host");
   assert.equal((await repository.getHostedQuests("host")).length, 1);
+});
+
+test("participant reads preserve pending join requests", async () => {
+  const repository = new MockQuestRepository([
+    makeQuest({ joinMode: "approval", participantIds: ["host"] }),
+  ]);
+  const request = await repository.requestToJoin("quest-test", "member");
+  const participants = await repository.getParticipants("quest-test");
+  assert.equal(participants.find((participant) => participant.id === request.id)?.status, "pending");
 });
 
 test("my activity groups separate active, pending, and past activities", async () => {

@@ -11,8 +11,8 @@ const buttonColors: Record<ButtonVariant, CSSProperties> = {
 
 const buttonPadding: Record<ButtonSize, string> = {
   small: "8px 12px",
-  medium: "10px 16px",
-  large: "13px 20px",
+  medium: "12px 20px",
+  large: "16px 24px",
 };
 
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -21,10 +21,11 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   loading?: boolean;
 };
 
-export function Button({ variant = "primary", size = "medium", loading = false, disabled, children, style, ...props }: ButtonProps) {
+export function Button({ variant = "primary", size = "medium", loading = false, disabled, children, style, className, ...props }: ButtonProps) {
   return (
     <button
       {...props}
+      className={["sq-button", className].filter(Boolean).join(" ")}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       style={{
@@ -36,7 +37,7 @@ export function Button({ variant = "primary", size = "medium", loading = false, 
         minHeight: 44,
         opacity: disabled || loading ? 0.55 : 1,
         padding: buttonPadding[size],
-        transition: "background-color 160ms ease, transform 160ms ease, opacity 160ms ease",
+        transition: "background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease, opacity 160ms ease",
         ...style,
       }}
     >

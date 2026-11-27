@@ -5,11 +5,27 @@ export type ValidationResult<T> =
   | { success: true; data: T }
   | { success: false; errors: Record<string, string> };
 
+const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+const timePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+
+export function localDateString(value: Date = new Date()) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function defaultQuestDate(now: Date = new Date()) {
+  const nextDay = new Date(now);
+  nextDay.setDate(nextDay.getDate() + 1);
+  return localDateString(nextDay);
+}
+
 const required = (value: string | undefined, field: string, errors: Record<string, string>) => {
   if (!value?.trim()) errors[field] = `${field} is required`;
 };
 
-export function validateQuestCreation(input: QuestCreationInput): ValidationResult<QuestCreationInput> {
+export function validateQuestCreation(input: QuestCreationInput, now: Date = new Date()): ValidationResult<QuestCreationInput> {
   const errors: Record<string, string> = {};
   required(input.title, "title", errors);
   required(input.description, "description", errors);
@@ -18,8 +34,16 @@ export function validateQuestCreation(input: QuestCreationInput): ValidationResu
   required(input.startTime, "startTime", errors);
   required(input.endTime, "endTime", errors);
   if (!QUEST_ACTIVITY_TYPES.some((item) => item.id === input.activityType)) errors.activityType = "Choose an activity type";
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date) || Number.isNaN(Date.parse(`${input.date}T00:00:00`))) errors.date = "Use a valid date";
-  if (!/^\d{2}:\d{2}$/.test(input.startTime) || !/^\d{2}:\d{2}$/.test(input.endTime)) errors.startTime = "Use valid start and end times";
+  if (!datePattern.test(input.date) || localDateString(new Date(input.date + "T12:00:00")) !== input.date) errors.date = "Use a valid date";
+  for (const field of ["startTime", "endTime"] as const) {
+    const time = input[field];
+    const instant = new Date(input.date + "T" + time);
+    if (!timePattern.test(time) || (!errors.date && (instant.getHours() !== Number(time.slice(0,2)) || instant.getMinutes() !== Number(time.slice(3)))))
+      errors[field] = "Use a valid local time";
+  }
+  if (!errors.date && input.date < localDateString(now)) errors.date = "Choose a future date";
+  if (!errors.date && !errors.startTime && new Date(input.date + "T" + input.startTime).getTime() <= now.getTime())
+    errors.startTime = "Choose a future start time";
   if (input.title.trim().length > 80) errors.title = "Title must be 80 characters or fewer";
   if (input.description.trim().length > 1000) errors.description = "Description must be 1000 characters or fewer";
   if (!Number.isInteger(input.capacity) || input.capacity < 2 || input.capacity > 100) errors.capacity = "Capacity must be between 2 and 100";
